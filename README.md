@@ -31,12 +31,12 @@ openssl rand -hex 32
 
 ### 2. Set context length in LM Studio
 
-OpenClaw requires a **minimum context length of 16384 tokens**.
+OpenClaw requires a **minimum context length of 16384 tokens**. We recommend **32768** for a better experience with tools and longer conversations.
 
 For each loaded model in LM Studio:
 1. Select the model
 2. Go to **Context and Offload** settings
-3. Set **Context Length** to at least **16384**
+3. Set **Context Length** to **32768** (or at least 16384)
 4. Click **Load** to reload the model
 
 ### 3. Configure your models
@@ -50,7 +50,7 @@ curl -H "Authorization: Bearer YOUR_LM_STUDIO_API_KEY" http://localhost:1234/v1/
 Edit `config/openclaw.json` and update the `models` array to match. Each model entry needs:
 
 ```json5
-{ "id": "exact/model-id-from-lmstudio", "name": "Display Name", "contextWindow": 16384, "maxTokens": 4096 }
+{ "id": "exact/model-id-from-lmstudio", "name": "Display Name", "contextWindow": 32768, "maxTokens": 4096 }
 ```
 
 Also update:
@@ -152,19 +152,14 @@ The `config/openclaw.json` file controls which models are available:
 
 ```
 Host Machine
-├── LM Studio (:1234)           ← local LLM inference (context >= 16384)
-├── PostgreSQL (:5432)          ← available via host.docker.internal
-└── Redis (:6379)               ← available via host.docker.internal
+└── LM Studio (:1234)           ← local LLM inference (context >= 32768)
 
 Docker
 └── openclaw-gateway (:18789)
     ├── connects to LM Studio via host.docker.internal:1234
-    ├── config/ bind-mounted for persistence
+    ├── config/ bind-mounted for persistence (file-based JSON storage)
     └── workspace/ bind-mounted for agent file access
 ```
-
-> **Note:** OpenClaw uses file-based storage (JSON) for sessions, memory, and tasks.
-> PostgreSQL and Redis are accessible from the container but not used by OpenClaw core.
 
 ## Troubleshooting
 
@@ -183,7 +178,7 @@ Then click **Connect** in the browser.
 
 OpenClaw requires at least **16000 tokens** context. In LM Studio:
 1. Select the model → Context and Offload
-2. Increase **Context Length** to at least **16384**
+2. Increase **Context Length** to **32768** (minimum 16384)
 3. Reload the model
 
 Also ensure `contextWindow` in `config/openclaw.json` matches the value set in LM Studio.
