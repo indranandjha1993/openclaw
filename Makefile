@@ -36,6 +36,15 @@ health: ## Check gateway health and reachability
 	@curl -sf http://127.0.0.1:18789/health > /dev/null 2>&1 && echo "  Gateway: healthy" || echo "  Gateway: unreachable"
 	@docker compose ps openclaw-gateway --format "  Status:  {{.Status}}"
 
+devices: ## List pending and paired devices
+	@docker exec openclaw-gateway openclaw devices list
+
+approve: ## Approve all pending device pairing requests
+	@docker exec openclaw-gateway openclaw devices list --json 2>/dev/null | \
+		python3 -c "import sys,json; [print(r['id']) for r in json.load(sys.stdin).get('pending',[])]" 2>/dev/null | \
+		while read id; do docker exec openclaw-gateway openclaw devices approve "$$id" && echo "  Approved: $$id"; done || \
+		echo "  No pending devices (or use 'make devices' to check manually)"
+
 ## ── Configuration ─────────────────────────────
 
 config: ## Open openclaw.json in your editor
@@ -75,4 +84,4 @@ help: ## Show this help
 		awk -F ':.*## ' '{ printf "    \033[36m%-14s\033[0m %s\n", $$1, $$2 }'
 	@echo ""
 
-.PHONY: up down restart logs status cli dashboard health config token env update destroy help
+.PHONY: up down restart logs status cli dashboard health devices approve config token env update destroy help
