@@ -37,6 +37,7 @@ services:
       - TERM=xterm-256color
       - TZ=${TZ:-UTC}
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
+      - LM_STUDIO_API_KEY=${LM_STUDIO_API_KEY}
       - BROWSER=echo
     volumes:
       - ./config:/home/node/.openclaw
