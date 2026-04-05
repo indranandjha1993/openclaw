@@ -1,0 +1,50 @@
+{
+  // Gateway bind to all interfaces (required for Docker)
+  "gateway": {
+    "bind": "lan"
+  },
+
+  // LM Studio models (auto-synced via: make sync-models)
+  "models": {
+    "mode": "replace",
+    "providers": {
+      "lm-studio": {
+        "baseUrl": "http://host.docker.internal:1234/v1",
+        "apiKey": "${LM_STUDIO_API_KEY}",
+        "api": "openai-completions",
+        "models": [
+          { "id": "google/gemma-4-e2b", "name": "Gemma 4 E2B", "contextWindow": 16384, "maxTokens": 4096 },
+          { "id": "mistralai/ministral-3-3b-reasoning", "name": "Ministral 3 3B Reasoning", "contextWindow": 16384, "maxTokens": 4096 },
+          { "id": "qwen/qwen3.5-4b", "name": "Qwen3.5 4B", "contextWindow": 16384, "maxTokens": 4096 },
+          { "id": "nvidia/nemotron-3-nano-4b", "name": "Nemotron 3 Nano 4B", "contextWindow": 16384, "maxTokens": 4096 }
+        ]
+      }
+    }
+  },
+
+  // Default: google/gemma-4-e2b | Fallback: mistralai/ministral-3-3b-reasoning
+  // models object acts as allowlist for the model picker
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "lm-studio/google/gemma-4-e2b",
+        "fallbacks": ["lm-studio/mistralai/ministral-3-3b-reasoning"]
+      },
+      "models": {
+        "lm-studio/google/gemma-4-e2b": { "alias": "gemma4e2b" },
+        "lm-studio/mistralai/ministral-3-3b-reasoning": { "alias": "ministral33breasoning" },
+        "lm-studio/qwen/qwen3.5-4b": { "alias": "qwen354b" },
+        "lm-studio/nvidia/nemotron-3-nano-4b": { "alias": "nemotron3nano4b" }
+      }
+    }
+  },
+
+  // Minimal tools to reduce system prompt token usage
+  "tools": {
+    "profile": "minimal",
+    "web": {
+      "search": { "enabled": false },
+      "fetch": { "enabled": true, "maxChars": 10000 }
+    }
+  }
+}
