@@ -29,7 +29,17 @@ openssl rand -hex 32
 # (find it in LM Studio → Settings → API)
 ```
 
-### 2. Configure your LM Studio models
+### 2. Set context length in LM Studio
+
+OpenClaw requires a **minimum context length of 16384 tokens**.
+
+For each loaded model in LM Studio:
+1. Select the model
+2. Go to **Context and Offload** settings
+3. Set **Context Length** to at least **16384**
+4. Click **Load** to reload the model
+
+### 3. Configure your models
 
 Check which models are loaded in LM Studio:
 
@@ -37,20 +47,17 @@ Check which models are loaded in LM Studio:
 curl -H "Authorization: Bearer YOUR_LM_STUDIO_API_KEY" http://localhost:1234/v1/models
 ```
 
-Edit `config/openclaw.json` and update the `models` array to match your loaded models. Each model entry needs:
+Edit `config/openclaw.json` and update the `models` array to match. Each model entry needs:
 
 ```json5
-{
-  "id": "exact/model-id-from-lmstudio",
-  "name": "Human-Readable Name",
-  "contextWindow": 32000,
-  "maxTokens": 4096
-}
+{ "id": "exact/model-id-from-lmstudio", "name": "Display Name", "contextWindow": 16384, "maxTokens": 4096 }
 ```
 
-Also update `agents.defaults.model.primary` to your preferred default model.
+Also update:
+- `agents.defaults.model.primary` — your preferred default model
+- `agents.defaults.models` — allowlist (only these appear in the model picker)
 
-### 3. Start the gateway
+### 4. Start the gateway
 
 ```bash
 make up
@@ -62,7 +69,7 @@ Wait a few seconds for the health check to pass, then verify:
 make health
 ```
 
-### 4. Connect the dashboard
+### 5. Connect the dashboard
 
 ```bash
 make dashboard
@@ -70,18 +77,13 @@ make dashboard
 
 This prints a URL like `http://127.0.0.1:18789/#token=abc123...`. Open it in your browser.
 
-### 5. Approve device pairing
+### 6. Approve device pairing
 
 On first connection (and after container recreates), the browser shows **"pairing required"**. This is expected — Docker's network bridge makes the browser appear as an external device.
 
-To approve:
-
 ```bash
-# List pending devices
-make devices
-
-# Approve all pending devices
-make approve
+make devices    # list pending devices
+make approve    # approve them
 ```
 
 Then click **Connect** in the browser. You're in!
@@ -136,11 +138,21 @@ Maintenance
 | `OPENCLAW_BRIDGE_PORT` | No | Bridge port (default: `18790`) |
 | `TZ` | No | Timezone (default: `Asia/Kolkata`) |
 
+### Model Configuration
+
+The `config/openclaw.json` file controls which models are available:
+
+- **`models.providers.lm-studio.models`** — defines available models with context size
+- **`agents.defaults.model.primary`** — default model for new chats
+- **`agents.defaults.model.fallbacks`** — fallback if primary fails
+- **`agents.defaults.models`** — allowlist for the model picker (only these show in the dropdown)
+- **`models.mode: "replace"`** — hides all built-in cloud providers, showing only your LM Studio models
+
 ## Architecture
 
 ```
 Host Machine
-├── LM Studio (:1234)           ← local LLM inference
+├── LM Studio (:1234)           ← local LLM inference (context >= 16384)
 ├── PostgreSQL (:5432)          ← available via host.docker.internal
 └── Redis (:6379)               ← available via host.docker.internal
 
@@ -158,7 +170,7 @@ Docker
 
 ### "pairing required" on dashboard
 
-This happens because Docker's bridge network makes browser connections appear external.
+Docker's bridge network makes browser connections appear external.
 
 ```bash
 make devices    # check pending devices
@@ -166,6 +178,21 @@ make approve    # approve them
 ```
 
 Then click **Connect** in the browser.
+
+### "context window too small" error
+
+OpenClaw requires at least **16000 tokens** context. In LM Studio:
+1. Select the model → Context and Offload
+2. Increase **Context Length** to at least **16384**
+3. Reload the model
+
+Also ensure `contextWindow` in `config/openclaw.json` matches the value set in LM Studio.
+
+### "tokens from initial prompt greater than context length"
+
+The system prompt exceeds the model's loaded context. Either:
+- Increase context length in LM Studio (see above)
+- Use `"profile": "minimal"` in `tools` config to reduce system prompt size
 
 ### Gateway keeps restarting
 
@@ -179,6 +206,7 @@ Common causes:
 - Invalid JSON in `config/openclaw.json` (comments are allowed — it's JSON5)
 - Missing `name` field on model entries
 - Missing `LM_STUDIO_API_KEY` in `.env`
+- Invalid `tools.profile` (allowed: `minimal`, `coding`, `messaging`, `full`)
 
 ### LM Studio models not working
 
