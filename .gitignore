@@ -1,0 +1,15 @@
+# Secrets
+.env
+
+# OpenClaw runtime state (auto-generated, not portable)
+config/agents/
+config/canvas/
+config/devices/
+config/identity/
+config/logs/
+config/tasks/
+config/update-check.json
+
+# Keep workspace dir but ignore contents
+workspace/*
+!workspace/.gitkeep
