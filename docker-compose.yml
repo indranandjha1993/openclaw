@@ -1,7 +1,16 @@
+networks:
+  openclaw:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.10.0/24
+
 services:
   cert-init:
     image: alpine/openssl:latest
     container_name: openclaw-cert-init
+    networks:
+      - openclaw
     volumes:
       - ./certs:/certs
     entrypoint: /bin/sh
@@ -28,6 +37,9 @@ services:
         condition: service_completed_successfully
       openclaw-backend:
         condition: service_healthy
+    networks:
+      openclaw:
+        ipv4_address: 10.10.10.10
     ports:
       - "80:80"
       - "443:443"
@@ -39,6 +51,9 @@ services:
     image: ghcr.io/openclaw/openclaw:latest
     container_name: openclaw-backend
     restart: unless-stopped
+    networks:
+      openclaw:
+        ipv4_address: 10.10.10.20
     expose:
       - "18789"
       - "18790"
@@ -49,7 +64,11 @@ services:
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
       - OPENCLAW_GATEWAY_BIND=0.0.0.0
       - OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=true
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - LM_STUDIO_API_KEY=${LM_STUDIO_API_KEY}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
     volumes:
       - ./config:/home/node/.openclaw
       - ./workspace:/home/node/.openclaw/workspace
@@ -68,12 +87,18 @@ services:
     depends_on:
       openclaw-backend:
         condition: service_healthy
+    networks:
+      - openclaw
     environment:
       - HOME=/home/node
       - TERM=xterm-256color
       - TZ=${TZ:-UTC}
       - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - LM_STUDIO_API_KEY=${LM_STUDIO_API_KEY}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - BROWSER=echo
     volumes:
       - ./config:/home/node/.openclaw

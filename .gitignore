@@ -21,6 +21,7 @@ config/telegram/
 config/update-check.json
 config/exec-approvals.json
 config/openclaw.json.bak*
+config/openclaw.json.clobbered.*
 
 # Workspace runtime state
 workspace/state/

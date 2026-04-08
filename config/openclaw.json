@@ -2,14 +2,26 @@
   "gateway": {
     "mode": "local",
     "bind": "lan",
+    "trustedProxies": [
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+      "10.0.0.0/8"
+    ],
     "controlUi": {
       "allowedOrigins": [
         "https://openclaw-gateway.openclaw.orb.local"
       ]
+    },
+    "auth": {
+      "rateLimit": {
+        "maxAttempts": 10,
+        "windowMs": 60000,
+        "lockoutMs": 300000
+      }
     }
   },
   "models": {
-    "mode": "replace",
+    "mode": "merge",
     "providers": {
       "lm-studio": {
         "baseUrl": "http://host.docker.internal:1234/v1",
@@ -17,26 +29,27 @@
         "api": "openai-completions",
         "models": [
           {
-            "id": "google/gemma-4-e2b",
-            "name": "Gemma 4 E2B",
+            "id": "gemma-4-e2b",
+            "name": "Gemma 4 E2B (Local)",
             "contextWindow": 32768,
             "maxTokens": 4096
           },
           {
-            "id": "mistralai/ministral-3-3b-reasoning",
-            "name": "Ministral 3 3B Reasoning",
+            "id": "ministral-3-3b-reasoning",
+            "name": "Ministral 3B Reasoning (Local)",
+            "contextWindow": 32768,
+            "maxTokens": 4096,
+            "reasoning": true
+          },
+          {
+            "id": "qwen3.5-4b",
+            "name": "Qwen 3.5 4B (Local)",
             "contextWindow": 32768,
             "maxTokens": 4096
           },
           {
-            "id": "qwen/qwen3.5-4b",
-            "name": "Qwen3.5 4B",
-            "contextWindow": 32768,
-            "maxTokens": 4096
-          },
-          {
-            "id": "nvidia/nemotron-3-nano-4b",
-            "name": "Nemotron 3 Nano 4B",
+            "id": "nemotron-3-nano-4b",
+            "name": "Nemotron 3 Nano 4B (Local)",
             "contextWindow": 32768,
             "maxTokens": 4096
           }
@@ -47,23 +60,69 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "lm-studio/google/gemma-4-e2b",
+        "primary": "lm-studio/gemma-4-e2b",
         "fallbacks": [
-          "lm-studio/mistralai/ministral-3-3b-reasoning"
+          "mistral/mistral-small-latest",
+          "google/gemini-2.5-flash"
         ]
       },
       "models": {
-        "lm-studio/google/gemma-4-e2b": {
-          "alias": "gemma4e2b"
+        "lm-studio/gemma-4-e2b": {
+          "alias": "gemma"
         },
-        "lm-studio/mistralai/ministral-3-3b-reasoning": {
-          "alias": "ministral33breasoning"
+        "lm-studio/qwen3.5-4b": {
+          "alias": "qwen"
         },
-        "lm-studio/qwen/qwen3.5-4b": {
-          "alias": "qwen354b"
+        "lm-studio/ministral-3-3b-reasoning": {
+          "alias": "ministral"
         },
-        "lm-studio/nvidia/nemotron-3-nano-4b": {
-          "alias": "nemotron3nano4b"
+        "lm-studio/nemotron-3-nano-4b": {
+          "alias": "nemotron"
+        },
+        "mistral/mistral-small-latest": {
+          "alias": "mistral-small"
+        },
+        "mistral/mistral-medium-latest": {
+          "alias": "mistral-medium"
+        },
+        "mistral/mistral-large-latest": {
+          "alias": "mistral-large"
+        },
+        "mistral/codestral-latest": {
+          "alias": "codestral"
+        },
+        "google/gemini-2.0-flash": {
+          "alias": "flash-2"
+        },
+        "google/gemini-2.5-flash": {
+          "alias": "flash-2.5"
+        },
+        "google/gemini-2.5-pro": {
+          "alias": "gemini-pro"
+        },
+        "openrouter/anthropic/claude-sonnet-4": {
+          "alias": "claude-sonnet"
+        },
+        "openrouter/anthropic/claude-3.5-haiku": {
+          "alias": "claude-haiku"
+        },
+        "openrouter/openai/gpt-4o": {
+          "alias": "gpt4o"
+        },
+        "openrouter/openai/gpt-4o-mini": {
+          "alias": "gpt4o-mini"
+        },
+        "openrouter/deepseek/deepseek-chat": {
+          "alias": "deepseek"
+        },
+        "openrouter/meta-llama/llama-3.3-70b-instruct": {
+          "alias": "llama-70b"
+        },
+        "openrouter/google/gemini-2.0-flash-001": {
+          "alias": "or-flash"
+        },
+        "openrouter/qwen/qwen-2.5-72b-instruct": {
+          "alias": "qwen-72b"
         }
       },
       "memorySearch": {
@@ -76,13 +135,11 @@
     "list": [
       {
         "id": "main",
-        "model": "lm-studio/google/gemma-4-e2b",
+        "model": "lm-studio/gemma-4-e2b",
         "tools": {
           "profile": "messaging",
           "alsoAllow": [
             "web_fetch",
-            "web_search",
-            "x_search",
             "memory_search",
             "memory_get",
             "sessions_list",
@@ -98,43 +155,33 @@
             "gateway",
             "nodes",
             "agents_list",
-            "update_plan",
-            "image",
-            "image_generate",
-            "music_generate",
-            "video_generate",
-            "tts",
             "exec",
             "process",
-            "code_execution",
             "edit",
             "write",
-            "read"
+            "read",
+            "tts"
           ]
         }
       }
     ]
   },
   "tools": {
-    "profile": "minimal",
+    "profile": "messaging",
     "web": {
       "search": {
-        "enabled": false
+        "enabled": true
       },
       "fetch": {
         "enabled": true,
-        "maxChars": 10000
+        "maxChars": 15000
       }
     }
-  },
-  "meta": {
-    "lastTouchedVersion": "2026.4.8",
-    "lastTouchedAt": "2026-04-08T12:09:18.360Z"
   },
   "channels": {
     "telegram": {
       "dmPolicy": "pairing",
-      "botToken": "8581741522:AAH_mQCHE5Ox9unAE5MKo6PK66KCTzC8qdI",
+      "botToken": "${TELEGRAM_BOT_TOKEN}",
       "groupPolicy": "allowlist",
       "accounts": {},
       "streaming": {
@@ -152,7 +199,23 @@
     "entries": {
       "browser": {
         "enabled": true
+      },
+      "google": {
+        "enabled": true
+      },
+      "mistral": {
+        "enabled": true
+      },
+      "openrouter": {
+        "enabled": true
+      },
+      "duckduckgo": {
+        "enabled": true
       }
     }
+  },
+  "meta": {
+    "lastTouchedVersion": "2026.4.8",
+    "lastTouchedAt": "2026-04-08T18:59:51.451Z"
   }
 }
