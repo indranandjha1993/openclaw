@@ -1,15 +1,37 @@
 # Secrets
 .env
 
+# TLS certificates (generated per-host)
+certs/
+
 # OpenClaw runtime state (auto-generated, not portable)
 config/agents/
 config/canvas/
+config/completions/
+config/credentials/
+config/delivery-queue/
 config/devices/
+config/flows/
 config/identity/
 config/logs/
+config/memory/
+config/qqbot/
 config/tasks/
+config/telegram/
 config/update-check.json
+config/exec-approvals.json
+config/openclaw.json.bak*
 
-# Keep workspace dir but ignore contents
+# Workspace runtime state
+workspace/state/
+workspace/memory/
+
+# Keep workspace personality files
 workspace/*
-!workspace/.gitkeep
+!workspace/SOUL.md
+!workspace/IDENTITY.md
+!workspace/USER.md
+!workspace/AGENTS.md
+!workspace/TOOLS.md
+!workspace/HEARTBEAT.md
+!workspace/MEMORY.md
