@@ -2,11 +2,7 @@
   "gateway": {
     "mode": "local",
     "bind": "lan",
-    "trustedProxies": [
-      "172.16.0.0/12",
-      "192.168.0.0/16",
-      "10.0.0.0/8"
-    ],
+    "trustedProxies": ["172.16.0.0/12", "192.168.0.0/16", "10.0.0.0/8"],
     "controlUi": {
       "allowedOrigins": [
         "https://openclaw-gateway.openclaw.orb.local"
@@ -66,65 +62,6 @@
           "google/gemini-2.5-flash"
         ]
       },
-      "models": {
-        "lm-studio/gemma-4-e2b": {
-          "alias": "gemma"
-        },
-        "lm-studio/qwen3.5-4b": {
-          "alias": "qwen"
-        },
-        "lm-studio/ministral-3-3b-reasoning": {
-          "alias": "ministral"
-        },
-        "lm-studio/nemotron-3-nano-4b": {
-          "alias": "nemotron"
-        },
-        "mistral/mistral-small-latest": {
-          "alias": "mistral-small"
-        },
-        "mistral/mistral-medium-latest": {
-          "alias": "mistral-medium"
-        },
-        "mistral/mistral-large-latest": {
-          "alias": "mistral-large"
-        },
-        "mistral/codestral-latest": {
-          "alias": "codestral"
-        },
-        "google/gemini-2.0-flash": {
-          "alias": "flash-2"
-        },
-        "google/gemini-2.5-flash": {
-          "alias": "flash-2.5"
-        },
-        "google/gemini-2.5-pro": {
-          "alias": "gemini-pro"
-        },
-        "openrouter/anthropic/claude-sonnet-4": {
-          "alias": "claude-sonnet"
-        },
-        "openrouter/anthropic/claude-3.5-haiku": {
-          "alias": "claude-haiku"
-        },
-        "openrouter/openai/gpt-4o": {
-          "alias": "gpt4o"
-        },
-        "openrouter/openai/gpt-4o-mini": {
-          "alias": "gpt4o-mini"
-        },
-        "openrouter/deepseek/deepseek-chat": {
-          "alias": "deepseek"
-        },
-        "openrouter/meta-llama/llama-3.3-70b-instruct": {
-          "alias": "llama-70b"
-        },
-        "openrouter/google/gemini-2.0-flash-001": {
-          "alias": "or-flash"
-        },
-        "openrouter/qwen/qwen-2.5-72b-instruct": {
-          "alias": "qwen-72b"
-        }
-      },
       "memorySearch": {
         "provider": "local"
       },
@@ -169,13 +106,8 @@
   "tools": {
     "profile": "messaging",
     "web": {
-      "search": {
-        "enabled": true
-      },
-      "fetch": {
-        "enabled": true,
-        "maxChars": 15000
-      }
+      "search": { "enabled": true },
+      "fetch": { "enabled": true, "maxChars": 15000 }
     }
   },
   "channels": {
@@ -184,38 +116,31 @@
       "botToken": "${TELEGRAM_BOT_TOKEN}",
       "groupPolicy": "allowlist",
       "accounts": {},
-      "streaming": {
-        "mode": "partial"
-      },
+      "streaming": { "mode": "partial" },
       "enabled": true
     }
   },
   "approvals": {
-    "exec": {
-      "agentFilter": []
-    }
+    "exec": { "agentFilter": [] }
   },
   "plugins": {
     "entries": {
-      "browser": {
-        "enabled": true
-      },
-      "google": {
-        "enabled": true
-      },
-      "mistral": {
-        "enabled": true
-      },
-      "openrouter": {
-        "enabled": true
-      },
-      "duckduckgo": {
-        "enabled": true
-      }
+      "browser": { "enabled": true },
+      "google": { "enabled": true },
+      "mistral": { "enabled": true },
+      "openrouter": { "enabled": true },
+      "duckduckgo": { "enabled": true }
     }
   },
-  "meta": {
-    "lastTouchedVersion": "2026.4.8",
-    "lastTouchedAt": "2026-04-08T18:59:51.451Z"
+  "mcp": {
+    "servers": {
+      "composio": {
+        "url": "https://connect.composio.dev/mcp",
+        "transport": "http",
+        "headers": {
+          "x-consumer-api-key": "ck_khYdBbChF-5ljDpJNcHm"
+        }
+      }
+    }
   }
 }
