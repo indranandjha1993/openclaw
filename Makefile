@@ -7,19 +7,19 @@
 ## ── Lifecycle ──────────────────────────────────
 
 up: ## Start the OpenClaw gateway
-	@docker compose up -d openclaw-gateway
-	@echo "\n  Dashboard: http://127.0.0.1:18789\n"
+	@docker compose up -d
+	@echo "\n  Dashboard: https://openclaw-gateway.openclaw.orb.local\n"
 
 down: ## Stop all OpenClaw services
 	@docker compose --profile cli down
 
 restart: ## Restart the gateway (picks up .env + config changes)
-	@docker compose up -d --force-recreate openclaw-gateway
+	@docker compose up -d --force-recreate openclaw-backend openclaw-gateway
 
 ## ── Observability ─────────────────────────────
 
 logs: ## Tail gateway logs (Ctrl+C to stop)
-	@docker compose logs -f openclaw-gateway
+	@docker compose logs -f openclaw-backend
 
 status: ## Show running containers and health
 	@docker compose ps -a
@@ -33,16 +33,16 @@ dashboard: ## Print the authenticated dashboard URL
 	@docker compose run --rm openclaw-cli openclaw dashboard --no-open
 
 health: ## Check gateway health and reachability
-	@curl -sf http://127.0.0.1:18789/health > /dev/null 2>&1 && echo "  Gateway: healthy" || echo "  Gateway: unreachable"
-	@docker compose ps openclaw-gateway --format "  Status:  {{.Status}}"
+	@curl -sfk https://openclaw-gateway.openclaw.orb.local/health > /dev/null 2>&1 && echo "  Gateway: healthy" || echo "  Gateway: unreachable"
+	@docker compose ps openclaw-backend --format "  Status:  {{.Status}}"
 
 devices: ## List pending and paired devices
-	@docker exec openclaw-gateway openclaw devices list
+	@docker exec openclaw-backend openclaw devices list
 
 approve: ## Approve all pending device pairing requests
-	@docker exec openclaw-gateway openclaw devices list --json 2>/dev/null | \
-		python3 -c "import sys,json; [print(r['id']) for r in json.load(sys.stdin).get('pending',[])]" 2>/dev/null | \
-		while read id; do docker exec openclaw-gateway openclaw devices approve "$$id" && echo "  Approved: $$id"; done || \
+	@docker exec openclaw-backend openclaw devices list --json 2>/dev/null | \
+		python3 -c "import sys,json; [print(r['requestId']) for r in json.load(sys.stdin).get('pending',[])]" 2>/dev/null | \
+		while read id; do docker exec openclaw-backend openclaw devices approve "$$id" && echo "  Approved: $$id"; done || \
 		echo "  No pending devices (or use 'make devices' to check manually)"
 
 ## ── Configuration ─────────────────────────────
@@ -63,7 +63,7 @@ env: ## Show current .env values (secrets masked)
 
 update: ## Pull latest image and restart
 	@docker compose pull
-	@docker compose up -d openclaw-gateway
+	@docker compose up -d openclaw-backend openclaw-gateway
 	@echo "\n  Updated to latest image.\n"
 
 destroy: ## Remove containers, volumes, and images (keeps config/)
