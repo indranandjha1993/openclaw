@@ -2,7 +2,7 @@
 
 My [OpenClaw](https://openclaw.ai/) setup: a personal AI assistant that runs in Docker,
 talks to me over Telegram and a web dashboard, and uses local models from
-[LM Studio](https://lmstudio.ai/) with Mistral and Gemini as cloud fallbacks.
+[LM Studio](https://lmstudio.ai/) with Gemini as the cloud fallback.
 
 ## Layout
 
@@ -33,7 +33,7 @@ Fill in `.env`:
 - `LM_STUDIO_URL`, `LM_STUDIO_API_KEY`: from LM Studio's Developer tab. Keep
   `host.docker.internal` as the host, only the port changes.
 - `TELEGRAM_BOT_TOKEN`: from @BotFather
-- `MISTRAL_API_KEY`, `GEMINI_API_KEY`, `COMPOSIO_API_KEY`: optional
+- `GEMINI_API_KEY`, `COMPOSIO_API_KEY`: optional
 
 Then edit `workspace/USER.md` so the agent knows who it works for.
 
@@ -78,6 +78,11 @@ Studio model key (`lms ls`), referenced elsewhere as `lm-studio/<key>`. The defa
 `OPENCLAW_MODEL` in `.env`; fallbacks are in `agents.defaults.model.fallbacks`.
 `agents.defaults.models` is just the list shown in the model picker.
 
+Other providers can be connected from the dashboard (Settings → Models). The key is saved
+in OpenClaw's state. If the provider also needs config changes (provider settings, fallback
+order, plugin toggles), the UI reports that it couldn't apply them because the config is
+read-only; add those to `config/openclaw.json`.
+
 ## Upgrading
 
 The image is pinned in `OPENCLAW_IMAGE`. To move to a new release:
@@ -97,7 +102,7 @@ patch ("Config repairs pending"). Apply it to `config/openclaw.json` by hand.
 **Gateway restarts in a loop.** `make logs`. Usually the config fails validation
 after an upgrade; the log names the keys to fix.
 
-**Local models fail, everything answers from Mistral.** LM Studio's server is off, on a
+**Local models fail, everything answers from Gemini.** LM Studio's server is off, on a
 different port, or the API key in `.env` is stale. Check with:
 
 ```bash
