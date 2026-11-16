@@ -52,23 +52,24 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "${OPENCLAW_MODEL:-openai/gpt-6-astra}",
         // Gemini 2.5 rejects tool results from OpenClaw; 3.x handles them.
-        // The local model is the last resort: fine for short replies, too
-        // slow on 16 GB for long tool-heavy turns.
+        "primary": "${OPENCLAW_MODEL:-google/gemini-3-flash-preview}",
+        // The local model is the fallback: fine for short replies, too slow
+        // on 16 GB for long tool-heavy turns.
         "fallbacks": [
-          "google/gemini-3-flash-preview",
           "lmstudio/qwen/qwen3.5-9b"
         ]
       },
       "models": {
-        "openai/gpt-6-astra": {},
-        "openai/gpt-6-sol": {},
-        "openai/gpt-6-luna": {},
         "google/gemini-3-flash-preview": {},
         "google/gemini-3.1-pro-preview": {},
         "lmstudio/qwen/qwen3.5-9b": {},
         "lmstudio/nvidia/nemotron-3-nano-4b": {}
+      },
+      // Routine check-ins run locally so they don't use the Gemini free-tier quota.
+      "heartbeat": {
+        "model": "lmstudio/qwen/qwen3.5-9b",
+        "lightContext": true
       }
     },
     "entries": {

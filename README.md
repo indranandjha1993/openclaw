@@ -1,9 +1,9 @@
 # openclaw
 
 My [OpenClaw](https://openclaw.ai/) setup: a personal AI assistant that runs in Docker,
-talks to me over Telegram and a web dashboard. It runs on GPT-6 Astra through my ChatGPT
-plan, falls back to Gemini 3 Flash, and uses a local [LM Studio](https://lmstudio.ai/)
-model as the last resort and for memory search embeddings.
+talks to me over Telegram and a web dashboard. It runs on Gemini 3 Flash (free tier) and
+falls back to a local [LM Studio](https://lmstudio.ai/) model, which also handles the
+routine heartbeat and memory search embeddings.
 
 ## Layout
 
@@ -40,7 +40,7 @@ Fill in `.env`:
 - `TELEGRAM_BOT_TOKEN`: from @BotFather
 - `TELEGRAM_OWNER_ID`: your numeric Telegram user id (@userinfobot tells you). It makes
   you the command owner, the account allowed to run admin commands from chat.
-- `GEMINI_API_KEY`: the first fallback
+- `GEMINI_API_KEY`: the primary model, from Google AI Studio (free tier works)
 - `COMPOSIO_API_KEY`: optional
 
 Then edit `workspace/USER.md` so the agent knows who it works for.
@@ -55,15 +55,6 @@ doesn't fit in 8K.
 make up
 make dashboard   # prints a login link
 ```
-
-Sign in to ChatGPT for the primary model. It prints a code to enter at
-auth.openai.com/codex/device; the login is stored in the state volume, not in `.env`:
-
-```bash
-docker compose exec gateway openclaw models auth login --provider openai --device-code
-```
-
-Don't restart the gateway while it's waiting, that cancels the sign-in.
 
 The first time a browser connects it shows "pairing required":
 
@@ -92,8 +83,9 @@ Anything else is `docker compose exec gateway openclaw <command>`.
 
 ## Models
 
-The default is `OPENCLAW_MODEL` in `.env` (`openai/gpt-6-astra`); fallbacks are in
-`agents.defaults.model.fallbacks`: Gemini 3 Flash, then the local Qwen.
+The default is `OPENCLAW_MODEL` in `.env` (`google/gemini-3-flash-preview`); the fallback
+in `agents.defaults.model.fallbacks` is the local Qwen, and `agents.defaults.heartbeat`
+pins the 30-minute heartbeat to it so check-ins don't use the Gemini quota.
 `agents.defaults.models` is just the list shown in the model picker.
 
 Gemini 2.5 models reject the tool results OpenClaw sends, so stay on 3.x. Code Mode is
