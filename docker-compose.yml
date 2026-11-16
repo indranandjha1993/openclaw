@@ -13,16 +13,21 @@ services:
       OPENCLAW_CONFIG_PATH: /etc/openclaw/openclaw.json
       OPENCLAW_CONFIG_READONLY: "1"
       OPENCLAW_STATE_DIR: /home/node/.openclaw
-    ports:
-      - "127.0.0.1:${OPENCLAW_PORT:-18789}:18789"
+      # OpenClaw's own bundled code still calls SDK functions it has marked
+      # deprecated; nothing in this setup can fix that, so hide just that code.
+      NODE_OPTIONS: --disable-warning=DEP_PLUGIN_SDK
+      NODE_COMPILE_CACHE: /var/tmp/openclaw-compile-cache
+      # Docker's restart policy is the supervisor; restart in place instead.
+      OPENCLAW_NO_RESPAWN: "1"
+    # Host networking lets the gateway bind 127.0.0.1 and still be reachable
+    # from this machine, instead of listening on 0.0.0.0 inside the container.
+    network_mode: host
     volumes:
       - state:/home/node/.openclaw
       - ./config:/etc/openclaw:ro
       - ./workspace:/home/node/.openclaw/workspace
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18789/health"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:$${OPENCLAW_GATEWAY_PORT:-18789}/health"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -1,10 +1,12 @@
 # Shortcuts for docker compose. For any other OpenClaw command:
 #   docker compose exec gateway openclaw <command>
 
-# First run: create .env and workspace/ from the examples
+# First run: create .env and workspace/ from the examples. OpenClaw expects
+# its config to be private (git doesn't keep file modes).
 init:
 	test -f .env || cp .env.example .env
 	test -d workspace || cp -R workspace.example workspace
+	chmod 600 .env config/openclaw.json
 
 up:
 	docker compose up -d
@@ -21,7 +23,7 @@ logs:
 
 # Dashboard link that signs in with the gateway token
 dashboard:
-	@echo "http://localhost:$$(grep ^OPENCLAW_PORT= .env | cut -d= -f2)/#token=$$(grep ^OPENCLAW_GATEWAY_TOKEN= .env | cut -d= -f2)"
+	@echo "http://localhost:$$(grep ^OPENCLAW_GATEWAY_PORT= .env | cut -d= -f2)/#token=$$(grep ^OPENCLAW_GATEWAY_TOKEN= .env | cut -d= -f2)"
 
 devices:
 	docker compose exec gateway openclaw devices list

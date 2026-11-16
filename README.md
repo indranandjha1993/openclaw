@@ -8,7 +8,7 @@ talks to me over Telegram and a web dashboard, and uses local models from
 
 | Path | What it is | In git |
 |---|---|---|
-| `docker-compose.yml` | One `gateway` service, pinned image, state in a Docker volume | yes |
+| `docker-compose.yml` | One `gateway` service on host networking, pinned image, state in a Docker volume | yes |
 | `config/openclaw.json` | OpenClaw config. Mounted read-only; values come from `.env` as `${VAR}` | yes |
 | `.env` | Secrets and anything machine-specific (image tag, port, model, URLs) | no |
 | `workspace/` | The agent's persona and memory files | no |
@@ -19,9 +19,14 @@ Runtime state (sessions, device pairing, Telegram state, installed plugins) live
 `openclaw_state` Docker volume, not in this directory. OpenClaw runs with
 `OPENCLAW_CONFIG_READONLY=1`, so it never rewrites the config file.
 
+The gateway listens on `127.0.0.1` only. Host networking makes that the host's loopback,
+so nothing is exposed beyond this machine and `localhost` inside the container reaches
+LM Studio directly.
+
 ## Setup
 
-You need Docker (I use OrbStack) and LM Studio.
+You need LM Studio and Docker with host networking: OrbStack (what I use), Docker
+Desktop 4.34+ with host networking enabled, or Docker on Linux.
 
 ```bash
 make init        # creates .env and workspace/ from the examples
@@ -30,9 +35,10 @@ make init        # creates .env and workspace/ from the examples
 Fill in `.env`:
 
 - `OPENCLAW_GATEWAY_TOKEN`: `openssl rand -hex 32`
-- `LM_STUDIO_URL`, `LM_STUDIO_API_KEY`: from LM Studio's Developer tab. Keep
-  `host.docker.internal` as the host, only the port changes.
+- `LM_STUDIO_URL`, `LM_STUDIO_API_KEY`: from LM Studio's Developer tab
 - `TELEGRAM_BOT_TOKEN`: from @BotFather
+- `TELEGRAM_OWNER_ID`: your numeric Telegram user id (@userinfobot tells you). It makes
+  you the command owner, the account allowed to run admin commands from chat.
 - `GEMINI_API_KEY`, `COMPOSIO_API_KEY`: optional
 
 Then edit `workspace/USER.md` so the agent knows who it works for.
@@ -111,3 +117,7 @@ docker compose exec gateway sh -c 'curl -s -H "Authorization: Bearer $LM_STUDIO_
 
 **"context window too small".** Raise the context length for that model in LM Studio
 and reload it.
+
+**"Agent main database … still requires its existing native owner" at startup.** Known
+on 2026.11.4: Doctor's cost-cache cleanup tries a database write it isn't allowed to
+make during startup maintenance. Nothing is broken; it should go away with the next release.

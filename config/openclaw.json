@@ -2,13 +2,11 @@
 {
   "gateway": {
     "mode": "local",
-    // Listen on all interfaces inside the container; compose only publishes
-    // the port on 127.0.0.1.
-    "bind": "lan",
+    "bind": "loopback",
     "controlUi": {
       "allowedOrigins": [
-        "http://localhost:${OPENCLAW_PORT:-18789}",
-        "http://127.0.0.1:${OPENCLAW_PORT:-18789}"
+        "http://localhost:${OPENCLAW_GATEWAY_PORT:-18789}",
+        "http://127.0.0.1:${OPENCLAW_GATEWAY_PORT:-18789}"
       ]
     },
     "auth": {
@@ -25,21 +23,19 @@
     "mode": "merge",
     "providers": {
       "lm-studio": {
-        "baseUrl": "${LM_STUDIO_URL:-http://host.docker.internal:1234/v1}",
+        "baseUrl": "${LM_STUDIO_URL:-http://localhost:1234/v1}",
         "apiKey": "${LM_STUDIO_API_KEY}",
         "api": "openai-completions",
         "models": [
           {
             "id": "qwen/qwen3.5-9b",
             "name": "Qwen 3.5 9B (Local)",
-            "contextWindow": 32768,
-            "maxTokens": 4096
+            "contextWindow": 32768
           },
           {
             "id": "nvidia/nemotron-3-nano-4b",
             "name": "Nemotron 3 Nano 4B (Local)",
-            "contextWindow": 32768,
-            "maxTokens": 4096
+            "contextWindow": 32768
           }
         ]
       }
@@ -112,7 +108,7 @@
       "provider": "lmstudio",
       "model": "${LM_STUDIO_EMBEDDING_MODEL:-text-embedding-nomic-embed-text-v1.5}",
       "remote": {
-        "baseUrl": "${LM_STUDIO_URL:-http://host.docker.internal:1234/v1}",
+        "baseUrl": "${LM_STUDIO_URL:-http://localhost:1234/v1}",
         "apiKey": "${LM_STUDIO_API_KEY}"
       }
     }
@@ -124,12 +120,22 @@
         "default": {
           "botToken": "${TELEGRAM_BOT_TOKEN}",
           "dmPolicy": "pairing",
-          "groupPolicy": "allowlist",
+          "groupPolicy": "disabled",
           "streaming": {
             "mode": "partial"
           }
         }
       }
+    }
+  },
+  "commands": {
+    "ownerAllowFrom": [
+      "telegram:${TELEGRAM_OWNER_ID}"
+    ]
+  },
+  "browser": {
+    "extensionRelay": {
+      "allowLegacyAuth": false
     }
   },
   "mcp": {
@@ -168,6 +174,11 @@
       },
       "sherpa-onnx-tts": {
         "enabled": false
+      }
+    },
+    "workshop": {
+      "autonomous": {
+        "mode": "off"
       }
     }
   },
