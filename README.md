@@ -1,228 +1,108 @@
-# OpenClaw — Dockerized Setup
+# openclaw
 
-Self-hosted [OpenClaw](https://openclaw.ai/) AI assistant running in Docker, pre-configured for local LLM inference via [LM Studio](https://lmstudio.ai/).
+My [OpenClaw](https://openclaw.ai/) setup: a personal AI assistant that runs in Docker,
+talks to me over Telegram and a web dashboard, and uses local models from
+[LM Studio](https://lmstudio.ai/) with Mistral and Gemini as cloud fallbacks.
 
-## Prerequisites
+## Layout
 
-- **Docker & Docker Compose** — [Install Docker Desktop](https://docs.docker.com/get-docker/)
-- **LM Studio** — running on the host with at least one model loaded ([download](https://lmstudio.ai/))
-- **Make** — pre-installed on macOS/Linux, or install via `brew install make`
+| Path | What it is | In git |
+|---|---|---|
+| `docker-compose.yml` | One `gateway` service, pinned image, state in a Docker volume | yes |
+| `config/openclaw.json` | OpenClaw config. Mounted read-only; values come from `.env` as `${VAR}` | yes |
+| `.env` | Secrets and anything machine-specific (image tag, port, model, URLs) | no |
+| `workspace/` | The agent's persona and memory files | no |
+| `workspace.example/` | Starting point for `workspace/` | yes |
+| `backups/` | Output of `make backup` | no |
 
-## Quick Start
+Runtime state (sessions, device pairing, Telegram state, installed plugins) lives in the
+`openclaw_state` Docker volume, not in this directory. OpenClaw runs with
+`OPENCLAW_CONFIG_READONLY=1`, so it never rewrites the config file.
 
-### 1. Clone and configure
+## Setup
 
-```bash
-git clone git@github.com:indranandjha1993/openclaw.git
-cd openclaw
-cp .env.example .env
-```
-
-Edit `.env` with your values:
-
-```bash
-# Generate a secure gateway token
-openssl rand -hex 32
-# Paste it as OPENCLAW_GATEWAY_TOKEN in .env
-
-# Add your LM Studio API key
-# (find it in LM Studio → Settings → API)
-```
-
-### 2. Set context length in LM Studio
-
-OpenClaw requires a **minimum context length of 16384 tokens**. We recommend **32768** for a better experience with tools and longer conversations.
-
-For each loaded model in LM Studio:
-1. Select the model
-2. Go to **Context and Offload** settings
-3. Set **Context Length** to **32768** (or at least 16384)
-4. Click **Load** to reload the model
-
-### 3. Configure your models
-
-Check which models are loaded in LM Studio:
+You need Docker (I use OrbStack) and LM Studio.
 
 ```bash
-curl -H "Authorization: Bearer YOUR_LM_STUDIO_API_KEY" http://localhost:1234/v1/models
+make init        # creates .env and workspace/ from the examples
 ```
 
-Edit `config/openclaw.json` and update the `models` array to match. Each model entry needs:
+Fill in `.env`:
 
-```json5
-{ "id": "exact/model-id-from-lmstudio", "name": "Display Name", "contextWindow": 32768, "maxTokens": 4096 }
-```
+- `OPENCLAW_GATEWAY_TOKEN`: `openssl rand -hex 32`
+- `LM_STUDIO_URL`, `LM_STUDIO_API_KEY`: from LM Studio's Developer tab. Keep
+  `host.docker.internal` as the host, only the port changes.
+- `TELEGRAM_BOT_TOKEN`: from @BotFather
+- `MISTRAL_API_KEY`, `GEMINI_API_KEY`, `COMPOSIO_API_KEY`: optional
 
-Also update:
-- `agents.defaults.model.primary` — your preferred default model
-- `agents.defaults.models` — allowlist (only these appear in the model picker)
+Then edit `workspace/USER.md` so the agent knows who it works for.
 
-### 4. Start the gateway
+In LM Studio, start the server, download the models listed in `config/openclaw.json`
+plus `text-embedding-nomic-embed-text-v1.5` (used for memory search), and set the
+context length to at least 32768 for the chat models. OpenClaw refuses anything under 16K.
 
 ```bash
 make up
+make dashboard   # prints a login link
 ```
 
-Wait a few seconds for the health check to pass, then verify:
+The first time a browser connects it shows "pairing required":
 
 ```bash
-make health
+make devices                 # find the pending requestId
+make approve ID=<requestId>
 ```
 
-### 5. Connect the dashboard
+Telegram works the same way. A new sender gets a pairing code from the bot:
 
 ```bash
-make dashboard
+docker compose exec gateway openclaw pairing approve telegram <code>
 ```
 
-This prints a URL like `http://127.0.0.1:18789/#token=abc123...`. Open it in your browser.
-
-### 6. Approve device pairing
-
-On first connection (and after container recreates), the browser shows **"pairing required"**. This is expected — Docker's network bridge makes the browser appear as an external device.
+## Day to day
 
 ```bash
-make devices    # list pending devices
-make approve    # approve them
+make up / make down
+make restart     # after changing .env
+make logs
+make backup      # verified archive into backups/
 ```
 
-Then click **Connect** in the browser. You're in!
+Config edits are picked up live; watch `make logs` for `config hot reload applied`.
+Anything else is `docker compose exec gateway openclaw <command>`.
 
-## Management
+## Models
 
-Run `make` to see all available commands:
+Local models are listed under `models.providers.lm-studio.models` with the exact LM
+Studio model key (`lms ls`), referenced elsewhere as `lm-studio/<key>`. The default is
+`OPENCLAW_MODEL` in `.env`; fallbacks are in `agents.defaults.model.fallbacks`.
+`agents.defaults.models` is just the list shown in the model picker.
 
-```
-Lifecycle
-  up              Start the OpenClaw gateway
-  down            Stop all OpenClaw services
-  restart         Restart the gateway (picks up .env + config changes)
+## Upgrading
 
-Observability
-  logs            Tail gateway logs (Ctrl+C to stop)
-  status          Show running containers and health
-
-Interaction
-  cli             Open an interactive CLI session
-  dashboard       Print the authenticated dashboard URL
-  health          Check gateway health and reachability
-  devices         List pending and paired devices
-  approve         Approve all pending device pairing requests
-
-Configuration
-  config          Open openclaw.json in your editor
-  token           Generate and save a new gateway token
-  env             Show current .env values (secrets masked)
-
-Maintenance
-  update          Pull latest image and restart
-  destroy         Remove containers, volumes, and images (keeps config/)
-```
-
-## Configuration
-
-| File | Purpose |
-|---|---|
-| `.env` | Gateway token, LM Studio API key, ports, timezone |
-| `.env.example` | Template with all required variables (safe to commit) |
-| `config/openclaw.json` | Gateway bind mode, LLM providers, agent defaults, tools |
-| `workspace/` | Files directly accessible to the OpenClaw agent |
-
-### Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `OPENCLAW_GATEWAY_TOKEN` | Yes | Auth token for dashboard and API connections |
-| `LM_STUDIO_API_KEY` | Yes | LM Studio API key for model access |
-| `OPENCLAW_GATEWAY_PORT` | No | Gateway port (default: `18789`) |
-| `OPENCLAW_BRIDGE_PORT` | No | Bridge port (default: `18790`) |
-| `TZ` | No | Timezone (default: `Asia/Kolkata`) |
-
-### Model Configuration
-
-The `config/openclaw.json` file controls which models are available:
-
-- **`models.providers.lm-studio.models`** — defines available models with context size
-- **`agents.defaults.model.primary`** — default model for new chats
-- **`agents.defaults.model.fallbacks`** — fallback if primary fails
-- **`agents.defaults.models`** — allowlist for the model picker (only these show in the dropdown)
-- **`models.mode: "replace"`** — hides all built-in cloud providers, showing only your LM Studio models
-
-## Architecture
-
-```
-Host Machine
-└── LM Studio (:1234)           ← local LLM inference (context >= 32768)
-
-Docker
-└── openclaw-gateway (:18789)
-    ├── connects to LM Studio via host.docker.internal:1234
-    ├── config/ bind-mounted for persistence (file-based JSON storage)
-    └── workspace/ bind-mounted for agent file access
-```
-
-## Troubleshooting
-
-### "pairing required" on dashboard
-
-Docker's bridge network makes browser connections appear external.
+The image is pinned in `OPENCLAW_IMAGE`. To move to a new release:
 
 ```bash
-make devices    # check pending devices
-make approve    # approve them
-```
-
-Then click **Connect** in the browser.
-
-### "context window too small" error
-
-OpenClaw requires at least **16000 tokens** context. In LM Studio:
-1. Select the model → Context and Offload
-2. Increase **Context Length** to **32768** (minimum 16384)
-3. Reload the model
-
-Also ensure `contextWindow` in `config/openclaw.json` matches the value set in LM Studio.
-
-### "tokens from initial prompt greater than context length"
-
-The system prompt exceeds the model's loaded context. Either:
-- Increase context length in LM Studio (see above)
-- Use `"profile": "minimal"` in `tools` config to reduce system prompt size
-
-### Gateway keeps restarting
-
-Check logs for config errors:
-
-```bash
+make backup
+# bump the tag in .env
+make up
 make logs
 ```
 
-Common causes:
-- Invalid JSON in `config/openclaw.json` (comments are allowed — it's JSON5)
-- Missing `name` field on model entries
-- Missing `LM_STUDIO_API_KEY` in `.env`
-- Invalid `tools.profile` (allowed: `minimal`, `coding`, `messaging`, `full`)
+If the new version wants config changes, Doctor prints them at startup as a merge
+patch ("Config repairs pending"). Apply it to `config/openclaw.json` by hand.
 
-### LM Studio models not working
+## Troubleshooting
 
-Verify LM Studio is reachable from the container:
+**Gateway restarts in a loop.** `make logs`. Usually the config fails validation
+after an upgrade; the log names the keys to fix.
+
+**Local models fail, everything answers from Mistral.** LM Studio's server is off, on a
+different port, or the API key in `.env` is stale. Check with:
 
 ```bash
-docker exec openclaw-gateway curl -s \
-  -H "Authorization: Bearer $LM_STUDIO_API_KEY" \
-  http://host.docker.internal:1234/v1/models
+docker compose exec gateway sh -c 'curl -s -H "Authorization: Bearer $LM_STUDIO_API_KEY" $LM_STUDIO_URL/models'
 ```
 
-Ensure model IDs in `config/openclaw.json` exactly match LM Studio's model IDs.
-
-### Config changes not taking effect
-
-Use `make restart` (not just `docker compose restart`) — it recreates the container to pick up `.env` changes.
-
-## Security Notes
-
-- Gateway token is required for all connections
-- LM Studio API key is stored in `.env` (git-ignored) and injected via env var
-- Gateway binds to `0.0.0.0` inside the container for Docker port forwarding — only exposed to `localhost` on the host
-- Do not expose port 18789 to the public internet without additional auth
-- Device pairing adds a second layer of trust for non-loopback connections
+**"context window too small".** Raise the context length for that model in LM Studio
+and reload it.
