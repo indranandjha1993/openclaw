@@ -22,10 +22,18 @@
   "models": {
     "mode": "merge",
     "providers": {
-      "lm-studio": {
+      "lmstudio": {
         "baseUrl": "${LM_STUDIO_URL:-http://localhost:1234/v1}",
         "apiKey": "${LM_STUDIO_API_KEY}",
         "api": "openai-completions",
+        // Cold loads of a 9B model can take a while
+        "timeoutSeconds": 300,
+        // On 2026.11.4 the preload sends a secret placeholder instead of the
+        // key and LM Studio rejects it. LM Studio loads models itself instead,
+        // so set each model's context length (32768) in LM Studio.
+        "params": {
+          "preload": false
+        },
         "models": [
           {
             "id": "qwen/qwen3.5-9b",
@@ -44,14 +52,14 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "${OPENCLAW_MODEL:-lm-studio/qwen/qwen3.5-9b}",
+        "primary": "${OPENCLAW_MODEL:-lmstudio/qwen/qwen3.5-9b}",
         "fallbacks": [
           "google/gemini-2.5-flash"
         ]
       },
       "models": {
-        "lm-studio/qwen/qwen3.5-9b": {},
-        "lm-studio/nvidia/nemotron-3-nano-4b": {},
+        "lmstudio/qwen/qwen3.5-9b": {},
+        "lmstudio/nvidia/nemotron-3-nano-4b": {},
         "google/gemini-2.5-flash": {},
         "google/gemini-2.5-flash-lite": {},
         "google/gemini-2.5-pro": {},

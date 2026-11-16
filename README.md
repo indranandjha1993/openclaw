@@ -43,9 +43,11 @@ Fill in `.env`:
 
 Then edit `workspace/USER.md` so the agent knows who it works for.
 
-In LM Studio, start the server, download the models listed in `config/openclaw.json`
-plus `text-embedding-nomic-embed-text-v1.5` (used for memory search), and set the
-context length to at least 32768 for the chat models. OpenClaw refuses anything under 16K.
+In LM Studio, start the server and download the models listed in `config/openclaw.json`
+plus `text-embedding-nomic-embed-text-v1.5` (used for memory search). Then, for each chat
+model, open its settings under My Models and set the default context length to 32768.
+LM Studio loads models on demand with that default (8192 otherwise), and Claw's prompt
+doesn't fit in 8K.
 
 ```bash
 make up
@@ -79,8 +81,8 @@ Anything else is `docker compose exec gateway openclaw <command>`.
 
 ## Models
 
-Local models are listed under `models.providers.lm-studio.models` with the exact LM
-Studio model key (`lms ls`), referenced elsewhere as `lm-studio/<key>`. The default is
+Local models are listed under `models.providers.lmstudio.models` with the exact LM
+Studio model key (`lms ls`), referenced elsewhere as `lmstudio/<key>`. The default is
 `OPENCLAW_MODEL` in `.env`; fallbacks are in `agents.defaults.model.fallbacks`.
 `agents.defaults.models` is just the list shown in the model picker.
 
