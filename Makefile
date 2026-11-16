@@ -1,87 +1,40 @@
-.DEFAULT_GOAL := help
+# Shortcuts for docker compose. For any other OpenClaw command:
+#   docker compose exec gateway openclaw <command>
 
-# ──────────────────────────────────────────────
-#  OpenClaw — Local AI Assistant (Docker)
-# ──────────────────────────────────────────────
+# First run: create .env and workspace/ from the examples
+init:
+	test -f .env || cp .env.example .env
+	test -d workspace || cp -R workspace.example workspace
 
-## ── Lifecycle ──────────────────────────────────
+up:
+	docker compose up -d
 
-up: ## Start the OpenClaw gateway
-	@docker compose up -d
-	@echo "\n  Dashboard: https://openclaw-gateway.openclaw.orb.local\n"
+down:
+	docker compose down
 
-down: ## Stop all OpenClaw services
-	@docker compose --profile cli down
+# Recreate the container so .env changes apply (config edits apply on their own)
+restart:
+	docker compose up -d --force-recreate
 
-restart: ## Restart the gateway (picks up .env + config changes)
-	@docker compose up -d --force-recreate openclaw-backend openclaw-gateway
+logs:
+	docker compose logs -f gateway
 
-## ── Observability ─────────────────────────────
+# Dashboard link that signs in with the gateway token
+dashboard:
+	@echo "http://localhost:$$(grep ^OPENCLAW_PORT= .env | cut -d= -f2)/#token=$$(grep ^OPENCLAW_GATEWAY_TOKEN= .env | cut -d= -f2)"
 
-logs: ## Tail gateway logs (Ctrl+C to stop)
-	@docker compose logs -f openclaw-backend
+devices:
+	docker compose exec gateway openclaw devices list
 
-status: ## Show running containers and health
-	@docker compose ps -a
+# make approve ID=<requestId from make devices>
+approve:
+	docker compose exec gateway openclaw devices approve $(ID)
 
-## ── Interaction ───────────────────────────────
+# Verified archive of sessions, pairing and workspace, saved to backups/
+backup:
+	mkdir -p backups
+	docker compose exec gateway sh -c 'mkdir -p /tmp/backup && openclaw backup create --verify --output /tmp/backup'
+	docker compose cp gateway:/tmp/backup/. backups/
+	docker compose exec gateway rm -rf /tmp/backup
 
-cli: ## Open an interactive CLI session
-	@docker compose run --rm openclaw-cli
-
-dashboard: ## Print the authenticated dashboard URL
-	@docker compose run --rm openclaw-cli openclaw dashboard --no-open
-
-health: ## Check gateway health and reachability
-	@curl -sfk https://openclaw-gateway.openclaw.orb.local/health > /dev/null 2>&1 && echo "  Gateway: healthy" || echo "  Gateway: unreachable"
-	@docker compose ps openclaw-backend --format "  Status:  {{.Status}}"
-
-devices: ## List pending and paired devices
-	@docker exec openclaw-backend openclaw devices list
-
-approve: ## Approve all pending device pairing requests
-	@docker exec openclaw-backend openclaw devices list --json 2>/dev/null | \
-		python3 -c "import sys,json; [print(r['requestId']) for r in json.load(sys.stdin).get('pending',[])]" 2>/dev/null | \
-		while read id; do docker exec openclaw-backend openclaw devices approve "$$id" && echo "  Approved: $$id"; done || \
-		echo "  No pending devices (or use 'make devices' to check manually)"
-
-## ── Configuration ─────────────────────────────
-
-config: ## Open openclaw.json in your editor
-	@$${EDITOR:-nano} config/openclaw.json
-
-token: ## Generate and save a new gateway token (run `make restart` after)
-	@TOKEN=$$(openssl rand -hex 32) && \
-	 sed -i '' "s/^OPENCLAW_GATEWAY_TOKEN=.*/OPENCLAW_GATEWAY_TOKEN=$$TOKEN/" .env && \
-	 echo "\n  New token: $$TOKEN" && \
-	 echo "  Run 'make restart' to apply.\n"
-
-env: ## Show current .env values (secrets masked)
-	@awk -F= '/TOKEN|API_KEY/{printf "  %-30s %s…\n", $$1, substr($$2,1,8)} !/TOKEN|API_KEY/{printf "  %-30s %s\n", $$1, $$2}' .env
-
-## ── Maintenance ───────────────────────────────
-
-update: ## Pull latest image and restart
-	@docker compose pull
-	@docker compose up -d openclaw-backend openclaw-gateway
-	@echo "\n  Updated to latest image.\n"
-
-destroy: ## Remove containers, volumes, and images (keeps config/)
-	@echo "This will remove all OpenClaw containers and images."
-	@read -p "  Continue? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
-	@docker compose --profile cli down --rmi all --volumes --remove-orphans
-	@echo "\n  Cleaned up. Config and workspace preserved.\n"
-
-## ── Help ──────────────────────────────────────
-
-help: ## Show this help
-	@echo ""
-	@echo "  \033[1mOpenClaw Manager\033[0m"
-	@echo "  Usage: make <target>"
-	@echo ""
-	@grep -E '^## ──' $(MAKEFILE_LIST) | sed 's/## /  /' | sed 's/─//g' | sed 's/  *$$//'
-	@grep -E '^[a-z][a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | \
-		awk -F ':.*## ' '{ printf "    \033[36m%-14s\033[0m %s\n", $$1, $$2 }'
-	@echo ""
-
-.PHONY: up down restart logs status cli dashboard health devices approve config token env update destroy help
+.PHONY: init up down restart logs dashboard devices approve backup
