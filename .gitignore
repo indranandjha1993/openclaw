@@ -4,6 +4,8 @@
 # Agent workspace: persona, memory and notes are personal.
 # A fresh setup starts from workspace.example/ (make init).
 /workspace/
+# OpenClaw's workspace guide; my global gitignore excludes AGENTS.md
+!/workspace.example/AGENTS.md
 
 # Local backups (make backup)
 /backups/
