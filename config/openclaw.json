@@ -1,14 +1,19 @@
+// Mounted read-only. Secrets and machine-specific values come from .env.
 {
   "gateway": {
     "mode": "local",
+    // Listen on all interfaces inside the container; compose only publishes
+    // the port on 127.0.0.1.
     "bind": "lan",
-    "trustedProxies": ["172.16.0.0/12", "192.168.0.0/16", "10.0.0.0/8"],
     "controlUi": {
       "allowedOrigins": [
-        "https://openclaw-gateway.openclaw.orb.local"
+        "http://localhost:${OPENCLAW_PORT:-18789}",
+        "http://127.0.0.1:${OPENCLAW_PORT:-18789}"
       ]
     },
     "auth": {
+      "mode": "token",
+      "token": "${OPENCLAW_GATEWAY_TOKEN}",
       "rateLimit": {
         "maxAttempts": 10,
         "windowMs": 60000,
@@ -20,31 +25,18 @@
     "mode": "merge",
     "providers": {
       "lm-studio": {
-        "baseUrl": "http://host.docker.internal:1234/v1",
+        "baseUrl": "${LM_STUDIO_URL:-http://host.docker.internal:1234/v1}",
         "apiKey": "${LM_STUDIO_API_KEY}",
         "api": "openai-completions",
         "models": [
           {
-            "id": "gemma-4-e2b",
-            "name": "Gemma 4 E2B (Local)",
+            "id": "qwen/qwen3.5-9b",
+            "name": "Qwen 3.5 9B (Local)",
             "contextWindow": 32768,
             "maxTokens": 4096
           },
           {
-            "id": "ministral-3-3b-reasoning",
-            "name": "Ministral 3B Reasoning (Local)",
-            "contextWindow": 32768,
-            "maxTokens": 4096,
-            "reasoning": true
-          },
-          {
-            "id": "qwen3.5-4b",
-            "name": "Qwen 3.5 4B (Local)",
-            "contextWindow": 32768,
-            "maxTokens": 4096
-          },
-          {
-            "id": "nemotron-3-nano-4b",
+            "id": "nvidia/nemotron-3-nano-4b",
             "name": "Nemotron 3 Nano 4B (Local)",
             "contextWindow": 32768,
             "maxTokens": 4096
@@ -56,17 +48,15 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "lm-studio/gemma-4-e2b",
+        "primary": "${OPENCLAW_MODEL:-lm-studio/qwen/qwen3.5-9b}",
         "fallbacks": [
           "mistral/mistral-small-latest",
           "google/gemini-2.5-flash"
         ]
       },
       "models": {
-        "lm-studio/gemma-4-e2b": {},
-        "lm-studio/qwen3.5-4b": {},
-        "lm-studio/ministral-3-3b-reasoning": {},
-        "lm-studio/nemotron-3-nano-4b": {},
+        "lm-studio/qwen/qwen3.5-9b": {},
+        "lm-studio/nvidia/nemotron-3-nano-4b": {},
         "mistral/mistral-small-latest": {},
         "mistral/mistral-medium-latest": {},
         "mistral/mistral-large-latest": {},
@@ -75,25 +65,15 @@
         "mistral/codestral-latest": {},
         "mistral/ministral-8b-latest": {},
         "mistral/pixtral-large-latest": {},
-        "google/gemini-2.0-flash": {},
-        "google/gemini-2.0-flash-lite": {},
         "google/gemini-2.5-flash": {},
         "google/gemini-2.5-flash-lite": {},
         "google/gemini-2.5-pro": {},
         "google/gemini-3-flash-preview": {},
-        "google/gemini-3-pro-preview": {}
-      },
-      "memorySearch": {
-        "provider": "local"
-      },
-      "compaction": {
-        "reserveTokensFloor": 20000
+        "google/gemini-3.1-pro-preview": {}
       }
     },
-    "list": [
-      {
-        "id": "main",
-        "model": "lm-studio/gemma-4-e2b",
+    "entries": {
+      "main": {
         "tools": {
           "profile": "messaging",
           "alsoAllow": [
@@ -122,44 +102,98 @@
           ]
         }
       }
-    ]
+    }
   },
   "tools": {
     "profile": "messaging",
     "web": {
-      "search": { "enabled": true },
-      "fetch": { "enabled": true, "maxChars": 15000 }
+      "search": {
+        "enabled": true
+      },
+      "fetch": {
+        "enabled": true,
+        "maxChars": 15000
+      }
+    }
+  },
+  "memory": {
+    "search": {
+      "provider": "openai-compatible",
+      "model": "${LM_STUDIO_EMBEDDING_MODEL:-text-embedding-nomic-embed-text-v1.5}",
+      "remote": {
+        "baseUrl": "${LM_STUDIO_URL:-http://host.docker.internal:1234/v1}",
+        "apiKey": "${LM_STUDIO_API_KEY}"
+      }
     }
   },
   "channels": {
     "telegram": {
-      "dmPolicy": "pairing",
-      "botToken": "${TELEGRAM_BOT_TOKEN}",
-      "groupPolicy": "allowlist",
-      "accounts": {},
-      "streaming": { "mode": "partial" },
-      "enabled": true
-    }
-  },
-  "approvals": {
-    "exec": { "agentFilter": [] }
-  },
-  "plugins": {
-    "entries": {
-      "browser": { "enabled": true },
-      "google": { "enabled": true },
-      "mistral": { "enabled": true },
-      "duckduckgo": { "enabled": true }
+      "enabled": true,
+      "accounts": {
+        "default": {
+          "botToken": "${TELEGRAM_BOT_TOKEN}",
+          "dmPolicy": "pairing",
+          "groupPolicy": "allowlist",
+          "streaming": {
+            "mode": "partial"
+          }
+        }
+      }
     }
   },
   "mcp": {
     "servers": {
       "composio": {
         "url": "https://connect.composio.dev/mcp",
-        "transport": "http",
+        "transport": "streamable-http",
         "headers": {
           "x-consumer-api-key": "${COMPOSIO_API_KEY}"
         }
+      }
+    }
+  },
+  "approvals": {
+    "exec": {
+      "agentFilter": []
+    }
+  },
+  "plugins": {
+    "entries": {
+      "browser": {
+        "enabled": true
+      },
+      "google": {
+        "enabled": true
+      },
+      "mistral": {
+        "enabled": true
+      },
+      "duckduckgo": {
+        "enabled": true
+      }
+    }
+  },
+  "skills": {
+    "entries": {
+      "openai-whisper-api": {
+        "enabled": false
+      },
+      "sherpa-onnx-tts": {
+        "enabled": false
+      }
+    }
+  },
+  // Upgrade bookkeeping. Doctor prints a patch for this block after each image
+  // bump; without the migration markers it would also propose turning
+  // agents.defaults.models into a modelPolicy allowlist on every start.
+  "meta": {
+    "lastTouchedVersion": "2026.11.4",
+    "migrations": {
+      "modelPolicyAllowlist": true,
+      "webhookListeners": {
+        "telegram": [],
+        "feishu": [],
+        "nextcloud-talk": []
       }
     }
   }
