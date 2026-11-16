@@ -107,12 +107,17 @@
   },
   "tools": {
     "profile": "messaging",
-    // Code Mode (on by default) hides tools behind one code-execution tool;
-    // the local 9B model can't drive that, so models get the tools directly.
+    // Code Mode and Tool Search hide tools behind a code-execution tool or a
+    // generic search/call tool. Both models guessed wrong arguments through
+    // them, so they get the real tools directly.
     "codeMode": false,
+    "toolSearch": false,
     "web": {
       "search": {
-        "enabled": true
+        "enabled": true,
+        // Auto-detect picks Gemini grounding when GEMINI_API_KEY is set, and the
+        // free tier returns 429 for it. DuckDuckGo needs no key.
+        "provider": "duckduckgo"
       },
       "fetch": {
         "enabled": true,

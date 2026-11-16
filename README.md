@@ -88,9 +88,11 @@ in `agents.defaults.model.fallbacks` is the local Qwen, and `agents.defaults.hea
 pins the 30-minute heartbeat to it so check-ins don't use the Gemini quota.
 `agents.defaults.models` is just the list shown in the model picker.
 
-Gemini 2.5 models reject the tool results OpenClaw sends, so stay on 3.x. Code Mode is
-off (`tools.codeMode: false`) so every model gets the real tools; with it on, the local
-model gets a single code-execution tool it can't drive.
+Gemini 2.5 models reject the tool results OpenClaw sends, so stay on 3.x. Code Mode and
+Tool Search are off (`tools.codeMode`, `tools.toolSearch`) so every model gets the real
+tools; through them both models sent malformed tool calls. Web search is pinned to
+DuckDuckGo: left on auto, OpenClaw picks Gemini's search grounding whenever a Gemini key
+is set, and the free tier answers that with 429.
 
 Local models are listed under `models.providers.lmstudio.models` with the exact LM
 Studio model key (`lms ls`), referenced elsewhere as `lmstudio/<key>`. On a 16 GB Mac,
