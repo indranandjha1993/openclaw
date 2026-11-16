@@ -1,8 +1,9 @@
 # openclaw
 
 My [OpenClaw](https://openclaw.ai/) setup: a personal AI assistant that runs in Docker,
-talks to me over Telegram and a web dashboard, and uses local models from
-[LM Studio](https://lmstudio.ai/) with Gemini as the cloud fallback.
+talks to me over Telegram and a web dashboard. It runs on GPT-6 Astra through my ChatGPT
+plan, falls back to Gemini 3 Flash, and uses a local [LM Studio](https://lmstudio.ai/)
+model as the last resort and for memory search embeddings.
 
 ## Layout
 
@@ -39,7 +40,8 @@ Fill in `.env`:
 - `TELEGRAM_BOT_TOKEN`: from @BotFather
 - `TELEGRAM_OWNER_ID`: your numeric Telegram user id (@userinfobot tells you). It makes
   you the command owner, the account allowed to run admin commands from chat.
-- `GEMINI_API_KEY`, `COMPOSIO_API_KEY`: optional
+- `GEMINI_API_KEY`: the first fallback
+- `COMPOSIO_API_KEY`: optional
 
 Then edit `workspace/USER.md` so the agent knows who it works for.
 
@@ -53,6 +55,15 @@ doesn't fit in 8K.
 make up
 make dashboard   # prints a login link
 ```
+
+Sign in to ChatGPT for the primary model. It prints a code to enter at
+auth.openai.com/codex/device; the login is stored in the state volume, not in `.env`:
+
+```bash
+docker compose exec gateway openclaw models auth login --provider openai --device-code
+```
+
+Don't restart the gateway while it's waiting, that cancels the sign-in.
 
 The first time a browser connects it shows "pairing required":
 
@@ -81,10 +92,18 @@ Anything else is `docker compose exec gateway openclaw <command>`.
 
 ## Models
 
-Local models are listed under `models.providers.lmstudio.models` with the exact LM
-Studio model key (`lms ls`), referenced elsewhere as `lmstudio/<key>`. The default is
-`OPENCLAW_MODEL` in `.env`; fallbacks are in `agents.defaults.model.fallbacks`.
+The default is `OPENCLAW_MODEL` in `.env` (`openai/gpt-6-astra`); fallbacks are in
+`agents.defaults.model.fallbacks`: Gemini 3 Flash, then the local Qwen.
 `agents.defaults.models` is just the list shown in the model picker.
+
+Gemini 2.5 models reject the tool results OpenClaw sends, so stay on 3.x. Code Mode is
+off (`tools.codeMode: false`) so every model gets the real tools; with it on, the local
+model gets a single code-execution tool it can't drive.
+
+Local models are listed under `models.providers.lmstudio.models` with the exact LM
+Studio model key (`lms ls`), referenced elsewhere as `lmstudio/<key>`. On a 16 GB Mac,
+Qwen 3.5 9B (MLX, 4-bit) is about the largest that fits next to Docker; it handles short
+replies but is too slow for long tool-heavy turns, which is why it's last in line.
 
 Other providers can be connected from the dashboard (Settings → Models). The key is saved
 in OpenClaw's state. If the provider also needs config changes (provider settings, fallback

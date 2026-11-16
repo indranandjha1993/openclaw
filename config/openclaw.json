@@ -52,19 +52,23 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "${OPENCLAW_MODEL:-lmstudio/qwen/qwen3.5-9b}",
+        "primary": "${OPENCLAW_MODEL:-openai/gpt-6-astra}",
+        // Gemini 2.5 rejects tool results from OpenClaw; 3.x handles them.
+        // The local model is the last resort: fine for short replies, too
+        // slow on 16 GB for long tool-heavy turns.
         "fallbacks": [
-          "google/gemini-2.5-flash"
+          "google/gemini-3-flash-preview",
+          "lmstudio/qwen/qwen3.5-9b"
         ]
       },
       "models": {
-        "lmstudio/qwen/qwen3.5-9b": {},
-        "lmstudio/nvidia/nemotron-3-nano-4b": {},
-        "google/gemini-2.5-flash": {},
-        "google/gemini-2.5-flash-lite": {},
-        "google/gemini-2.5-pro": {},
+        "openai/gpt-6-astra": {},
+        "openai/gpt-6-sol": {},
+        "openai/gpt-6-luna": {},
         "google/gemini-3-flash-preview": {},
-        "google/gemini-3.1-pro-preview": {}
+        "google/gemini-3.1-pro-preview": {},
+        "lmstudio/qwen/qwen3.5-9b": {},
+        "lmstudio/nvidia/nemotron-3-nano-4b": {}
       }
     },
     "entries": {
@@ -72,6 +76,7 @@
         "tools": {
           "profile": "messaging",
           "alsoAllow": [
+            "web_search",
             "web_fetch",
             "memory_search",
             "memory_get",
@@ -101,6 +106,9 @@
   },
   "tools": {
     "profile": "messaging",
+    // Code Mode (on by default) hides tools behind one code-execution tool;
+    // the local 9B model can't drive that, so models get the tools directly.
+    "codeMode": false,
     "web": {
       "search": {
         "enabled": true
